@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ゲーム検索 & ランキング</title>
+  <link rel="stylesheet" href="./style.css/style.css" />
+
+  <!-- jQuery -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+  <!-- axios -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <header>
+    <h1>🎮 ゲーム検索 & ランキング</h1>
+
+    <!-- 検索フォーム -->
+    <input type="text" id="searchInput" placeholder="ゲーム名で検索" />
+    <button id="searchBtn">検索</button>
+
+    <!-- 気になるリストボタン -->
+    <button id="favoritesBtn">気になるリスト</button>
+  </header>
+
+  <main>
+    <h2>ゲームランキング</h2>
+
+    <!-- 並び替えセレクト -->
+    <div class="sort-bar">
+      <label for="sort-select">並び替え：</label>
+      <select id="sort-select">
+        <option value="-rating">評価が高い順</option>
+        <option value="-added">人気順</option>
+        <option value="-released">最新リリース順</option>
+        <option value="name">名前順</option>
+        <option value="-metacritic">メタスコア順</option>
+      </select>
+    </div>
+
+    <!-- ゲーム一覧表示 -->
+    <div class="game-list"></div>
+
+    <!-- 読み込み中表示 -->
+    <div id="loading" style="text-align:center; display:none;">
+      <p>読み込み中...</p>
+    </div>
+  </main>
+
+  <script>
+    // Firebase設定
+    const firebaseConfig = {
+      apiKey: "",
+      authDomain: "rawg-api.firebaseapp.com",
+      projectId: "rawg-api",
+      storageBucket: "rawg-api.firebasestorage.app",
+      messagingSenderId: "81137225470",
+      appId: "1:81137225470:web:447651297a4aff5525dfaf"
+    };
+
+    // Firebase初期化
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // RAWG APIキー
+    const apiKey = '';
+
+    let currentOrdering = '-rating';  // 並び順
+    let currentQuery = '';            // 検索ワード
+    let currentPage = 1;              // 現在のページ
+    let isLoading = false;            // 読み込み中フラグ
+    let endOfData = false;            // データ終端判定
+
+    // ゲーム取得関数
+    function fetchGames(ordering, query = '', page = 1, append = false) {
+      if (isLoading || endOfData) return;
+
+      isLoading = true;
+      $('#loading').show();
+
+      const params = {
+        key: apiKey,
+        ordering: ordering,
+        page_size: 20,
+        page: page
+      };
+      if (query) params.search = query;
+
+      axios.get('https://api.rawg.io/api/games', { params })
+        .then(res => {
+          const games = res.data.results;
+
+          if (games.length === 0) {
+            endOfData = true;
+            if (!append) $('.game-list').html('<p>データが見つかりません。</p>');
+            return;
+          }
+
+          displayGames(games, append);
+          currentPage++;
+        })
+        .catch(err => {
+          console.error('ゲーム取得エラー:', err);
+          if (!append) $('.game-list').html('<p>ゲームの取得に失敗しました。</p>');
+        })
+        .finally(() => {
+          isLoading = false;
+          $('#loading').hide();
+        });
+    }
+
+    // ゲーム表示関数（気になるボタン）
+    function displayGames(games, append = false) {
+      let html = '';
+
+      games.forEach(game => {
+        html += `
+          <div class="game-card" data-id="${game.id}" data-name="${game.name}" data-image="${game.background_image}" data-rating="${game.rating}">
+            <img src="${game.background_image}" alt="${game.name}" />
+            <h3>${game.name}</h3>
+            <p>★ ${game.rating}</p>
+            <button class="add-favorite-btn">気になる</button>
+          </div>
+        `;
+      });
+
+      if (append) {
+        $(".game-list").append(html);
+      } else {
+        $(".game-list").html(html);
+      }
+    }
+
+    $(document).ready(function () {
+      // 初回ゲーム取得
+      fetchGames(currentOrdering);
+
+      // 並び替え変更
+      $('#sort-select').on('change', function () {
+        currentOrdering = $(this).val();
+        currentPage = 1;
+        endOfData = false;
+        fetchGames(currentOrdering, currentQuery, currentPage, false);
+      });
+
+      // 検索ボタン
+      $('#searchBtn').click(function () {
+        currentQuery = $('#searchInput').val().trim();
+        currentPage = 1;
+        endOfData = false;
+        fetchGames(currentOrdering, currentQuery, currentPage, false);
+      });
+
+      // ゲームカードクリックで詳細へ
+      $('.game-list').on('click', '.game-card', function () {
+        const gameId = $(this).data('id');
+        window.location.href = `details.html?id=${gameId}`;
+      });
+
+      // 「気になる」ボタンクリック
+      $('.game-list').on('click', '.add-favorite-btn', function (e) {
+        e.stopPropagation(); // 詳細遷移を止める
+
+        const $card = $(this).closest('.game-card');
+        const gameId = $card.data('id');
+        const gameName = $card.data('name');
+        const gameImage = $card.data('image');
+        const gameRating = $card.data('rating');
+
+        // Firestoreに保存
+        db.collection('favorites').doc(String(gameId)).set({
+          id: gameId,
+          name: gameName,
+          background_image: gameImage,
+          rating: gameRating
+        })
+          .then(() => {
+            alert(`「${gameName}」を気になるリストに追加しました！`);
+          })
+          .catch(err => {
+            console.error('気になる追加エラー:', err);
+            alert('追加に失敗しました');
+          });
+      });
+
+      // 「気になるリスト」ボタンでページ遷移
+      $('#favoritesBtn').click(function () {
+        window.location.href = 'favorite.html';
+      });
+
+      // スクロール無限読み込み
+      $(window).on('scroll', function () {
+        if ($(window).scrollTop() + $(window).height() >= $(document).height() - 200) {
+          fetchGames(currentOrdering, currentQuery, currentPage, true);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

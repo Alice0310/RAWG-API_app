@@ -1,0 +1,89 @@
+/* 全体の文字や背景色を設定 */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+  }
+  
+  /* ヘッダーのスタイル */
+  header {
+    margin-bottom: 20px;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 10px;
+  }
+  
+  /* ヘッダーのタイトル */
+  header h1 {
+    margin: 0 0 10px 0;
+    font-size: 1.8rem;
+    color: #222;
+  }
+  
+  /* 「ゲーム一覧に戻る」リンク */
+  header a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  header a:hover {
+    text-decoration: underline;
+  }
+  
+  /* メインコンテナの幅制限と中央寄せ */
+  #game-detail-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  
+  /* ゲームタイトルのスタイル */
+  #game-detail-container h2 {
+    margin-top: 0;
+    font-size: 2rem;
+    color: #111;
+  }
+  
+  /* 画像のスタイル（すでにインラインで設定してあるが補助的に） */
+  #game-detail-container img {
+    display: block;
+    margin: 20px auto;
+    border-radius: 8px;
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* 各テキスト段落のスタイル */
+  #game-detail-container p {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 10px 0;
+  }
+  
+  /* 説明文の div */
+  #game-detail-container div {
+    margin-top: 15px;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #555;
+  }
+  
+  /* リンクのスタイル */
+  #game-detail-container a {
+    display: inline-block;
+    margin-top: 15px;
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  #game-detail-container a:hover {
+    text-decoration: underline;
+  }
+  
+  

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>気になるリスト</title>
+  <link rel="stylesheet" href="./style.css/style3.css" />
+
+  <!-- jQuery -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <header>
+    <h1>🎮 気になるリスト</h1>
+    <button id="backBtn">← 戻る</button>
+  </header>
+
+  <main>
+    <h2>保存されたゲーム一覧</h2>
+    <div class="game-list"></div>
+  </main>
+
+  <script>
+    // Firebase初期化
+    const firebaseConfig = {
+      apiKey: "",
+      authDomain: "rawg-api.firebaseapp.com",
+      projectId: "rawg-api",
+      storageBucket: "rawg-api.appspot.com",
+      messagingSenderId: "81137225470",
+      appId: "1:81137225470:web:447651297a4aff5525dfaf"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 気になるリストを読み込み
+    function loadFavorites() {
+      db.collection("favorites").get().then(snapshot => {
+        if (snapshot.empty) {
+          $(".game-list").html("<p>気になるゲームはありません。</p>");
+          return;
+        }
+
+        let html = "";
+        snapshot.forEach(doc => {
+          const game = doc.data();
+          html += `
+            <div class="game-card" data-id="${game.id}">
+              <img src="${game.background_image}" alt="${game.name}" />
+              <h3>${game.name}</h3>
+              <p>★ ${game.rating}</p>
+              <button class="remove-favorite-btn" style="margin: 10px; padding: 6px 12px; background-color: #ff4747; color: white; border: none; border-radius: 4px; cursor: pointer;">削除</button>
+            </div>
+          `;
+        });
+
+        $(".game-list").html(html);
+      }).catch(err => {
+        console.error("お気に入り読み込みエラー:", err);
+      });
+    }
+
+    // お気に入り削除
+    function removeFavorite(gameId) {
+      db.collection("favorites").doc(gameId.toString()).delete().then(() => {
+        console.log("削除成功");
+        loadFavorites(); // 再読み込み
+      }).catch(err => {
+        console.error("削除エラー:", err);
+      });
+    }
+
+    $(document).ready(function () {
+      loadFavorites();
+
+      // 詳細ページへ遷移
+      $('.game-list').on('click', '.game-card', function () {
+        const gameId = $(this).data('id');
+        window.location.href = `details.html?id=${gameId}`;
+      });
+
+      // 削除ボタン（詳細ページへの遷移を防ぐ）
+      $('.game-list').on('click', '.remove-favorite-btn', function (e) {
+        e.stopPropagation();
+        const gameId = $(this).closest('.game-card').data('id');
+        if (confirm('本当に削除しますか？')) {
+          removeFavorite(gameId);
+        }
+      });
+
+      // 戻る
+      $('#backBtn').click(() => {
+        window.history.back();
+      });
+    });
+  </script>
+</body>
+</html>
